@@ -1,0 +1,1 @@
+"""The balaton water temperature component."""
