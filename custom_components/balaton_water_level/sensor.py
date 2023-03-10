@@ -1,12 +1,17 @@
 """Support for getting the Balaton átlag water level."""
 from __future__ import annotations
 
+from typing import Final
+
 import logging
 import aiohttp
+import voluptuous as vol
+
+import homeassistant.helpers.config_validation as cv
 
 from datetime import timedelta
-
 from homeassistant.components.sensor import (
+    PLATFORM_SCHEMA as BASE_PLATFORM_SCHEMA,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
@@ -28,6 +33,13 @@ ATTRIBUTES = "attributes"
 FEATURES = "features"
 VIZALLAS = "vh.dbo.AllomasAdatVOP_FE.Vizallas"
 NEV = "vFeAllomas_webmerc.Nev"
+DEFAULT_NAME = "Balaton átlag"
+
+PLATFORM_SCHEMA: Final = BASE_PLATFORM_SCHEMA.extend(
+    {
+        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+    }
+)
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
