@@ -97,10 +97,8 @@ class BalatonWaterLevel(SensorEntity):
 
             return next(
                 iter(
-                    [
-                        feat.get(ATTRIBUTES).get(VIZALLAS)
-                        for feat in content_json.get(FEATURES)
-                        if feat.get(ATTRIBUTES).get(NEV) == self.place
-                    ]
+                    feat.get(ATTRIBUTES).get(VIZALLAS)
+                    for feat in content_json.get(FEATURES)
+                    if feat.get(ATTRIBUTES).get(NEV) == self.place
                 )
             )
