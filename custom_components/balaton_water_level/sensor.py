@@ -22,12 +22,6 @@ from homeassistant.const import CONF_NAME, UnitOfLength
 _LOGGER = logging.getLogger(__name__)
 
 PATH = "https://geoportal.vizugy.hu/arcgis/rest/services/VIR/Vizmercek_vizugyhu/MapServer/60/query"
-PARAMS = {
-    "f": "json",
-    "where": "vFeAllomas_webmerc.TulajdonosSzervezetKod = 4",
-    "returnGeometry": "false",
-    "outFields": "vFeAllomas_webmerc.Nev,vFeAllomas_webmerc.Torzsszam,vFeAllomas_webmerc.vFeAllomas_VizmerceMederVOANev,vFeAllomas_webmerc.vFeAllomas_VizmerceFkm,vFeAllomas_webmerc.vFeAllomas_VizmerceNullpont,vFeAllomas_webmerc.vFeAllomas_VizmerceLKV,vFeAllomas_webmerc.vFeAllomas_VizmerceLNV,vFeAllomas_webmerc.vFeAllomas_VizmerceKF1,vFeAllomas_webmerc.vFeAllomas_VizmerceKF2,vFeAllomas_webmerc.vFeAllomas_VizmerceKF3,vh.dbo.tArvizKeszultseg.FokozatKod,vh.dbo.AllomasAdatVOP_FE.MaxTime,vh.dbo.AllomasAdatVOP_FE.Vizallas,vh.dbo.AllomasAdatVOP_FE.Vizhozam,vh.dbo.AllomasAdatVOP_FE.Vizho",
-}
 
 ATTRIBUTES = "attributes"
 FEATURES = "features"
@@ -87,8 +81,15 @@ class BalatonWaterLevel(SensorEntity):
     ) -> int:
         """Async request with aiohttp"""
 
+        request_params = {
+            "f": "json",
+            "where": f"{NEV} = '{self.place}'",
+            "returnGeometry": "false",
+            "outFields": f"{NEV},{VIZALLAS}",
+        }
+
         async with aiohttp.ClientSession() as session:
-            response = await session.request(method, path, params=PARAMS)
+            response = await session.request(method, path, params=request_params)
 
             if not response.ok:
                 raise Exception(response.status)
@@ -96,9 +97,6 @@ class BalatonWaterLevel(SensorEntity):
             content_json = await response.json()
 
             return next(
-                iter(
-                    feat.get(ATTRIBUTES).get(VIZALLAS)
-                    for feat in content_json.get(FEATURES)
-                    if feat.get(ATTRIBUTES).get(NEV) == self.place
-                )
+                feat.get(ATTRIBUTES).get(VIZALLAS)
+                for feat in content_json.get(FEATURES)
             )
