@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Final
 
+import ast
+import re
 import logging
 import aiohttp
 import voluptuous as vol
@@ -17,21 +19,19 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.util import Throttle
-from homeassistant.const import CONF_NAME, UnitOfLength
+from homeassistant.const import CONF_NAME, CONF_ID, UnitOfLength
 
 _LOGGER = logging.getLogger(__name__)
 
-PATH = "https://geoportal.vizugy.hu/arcgis/rest/services/VIR/Vizmercek_vizugyhu/MapServer/60/query"
+PATH = "https://www.vizugy.hu/"
 
-ATTRIBUTES = "attributes"
-FEATURES = "features"
-VIZALLAS = "vh.dbo.AllomasAdatVOP_FE.Vizallas"
-NEV = "vFeAllomas_webmerc.Nev"
 DEFAULT_NAME = "Balaton átlag"
+DEFAULT_VOA = "164961D7-97AB-11D4-BB62-00508BA24287"
 
 PLATFORM_SCHEMA: Final = BASE_PLATFORM_SCHEMA.extend(
     {
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+        vol.Required(CONF_NAME, default=DEFAULT_NAME): cv.string,
+        vol.Required(CONF_ID, default=DEFAULT_VOA): cv.string,
     }
 )
 
@@ -39,15 +39,17 @@ PLATFORM_SCHEMA: Final = BASE_PLATFORM_SCHEMA.extend(
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the sensor platform."""
     name = config[CONF_NAME]
-    async_add_entities([BalatonWaterLevel(name)])
+    voa = config[CONF_ID]
+    async_add_entities([BalatonWaterLevel(name, voa)])
 
 
 class BalatonWaterLevel(SensorEntity):
     """Representation of a sensor."""
 
-    def __init__(self, place) -> None:
+    def __init__(self, place, voa) -> None:
         """Initialize a sensor."""
         self.place = place
+        self.voa = voa
 
     @property
     def unique_id(self) -> str | None:
@@ -80,12 +82,10 @@ class BalatonWaterLevel(SensorEntity):
         method: str = aiohttp.hdrs.METH_GET,
     ) -> int:
         """Async request with aiohttp"""
-
         request_params = {
-            "f": "json",
-            "where": f"{NEV} = '{self.place}'",
-            "returnGeometry": "false",
-            "outFields": f"{NEV},{VIZALLAS}",
+            "AllomasVOA": f"{self.voa}",
+            "mapData": "Idosor",
+            "mapModule": "OpGrafikon",
         }
 
         async with aiohttp.ClientSession() as session:
@@ -94,9 +94,11 @@ class BalatonWaterLevel(SensorEntity):
             if not response.ok:
                 raise Exception(response.status)
 
-            content_json = await response.json()
-
-            return next(
-                feat.get(ATTRIBUTES).get(VIZALLAS)
-                for feat in content_json.get(FEATURES)
-            )
+            content_raw = await response.read()
+            content = content_raw.decode()
+            vizallas = re.search(
+                r"Vizallas = new Array\(.*?(?=\))\)", content, re.S
+            ).group()
+            vizallas_array = re.search(r"\(.*\)", vizallas, re.S).group()
+            vizallas_list = ast.literal_eval(vizallas_array)
+            return vizallas_list[-1]
