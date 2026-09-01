@@ -1,0 +1,5 @@
+{
+  "name": "Balaton water level",
+  "homeassistant": "2023.2.0",
+  "render_readme": true
+}
