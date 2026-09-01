@@ -89,7 +89,9 @@ class BalatonWaterLevel(SensorEntity):
         }
 
         async with aiohttp.ClientSession() as session:
-            response = await session.request(method, path, params=request_params)
+            response = await session.request(
+                method, path, params=request_params, ssl=False
+            )
 
             if not response.ok:
                 raise Exception(response.status)
