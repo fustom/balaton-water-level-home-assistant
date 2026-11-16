@@ -23,7 +23,10 @@ from homeassistant.const import CONF_NAME, CONF_ID, UnitOfLength
 
 _LOGGER = logging.getLogger(__name__)
 
-PATH = "https://www.vizugy.hu/"
+# www.vizugy.hu now only serves a redirect stub (meta refresh to the regional subsites), so the
+# "Vizallas = new Array(...)" series is no longer in the response. The regional subsite answers the
+# same AllomasVOA/Idosor/OpGrafikon query for the Balaton gauges (verified 2026-11-16).
+PATH = "https://paks.vizugy.hu/"
 
 DEFAULT_NAME = "Balaton átlag"
 DEFAULT_VOA = "164961D7-97AB-11D4-BB62-00508BA24287"
